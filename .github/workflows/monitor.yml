@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4
 
-        - name: Test notification
+      - name: Test notification
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}

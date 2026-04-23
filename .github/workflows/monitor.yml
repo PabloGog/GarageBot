@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: pip install requests beautifulsoup4
-
+        
  - name: Debug secrets
         run: |
           echo "BOT_TOKEN length: ${#BOT_TOKEN}"
@@ -32,7 +32,6 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-
       - name: Run monitor
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}

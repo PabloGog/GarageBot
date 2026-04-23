@@ -23,8 +23,8 @@ from datetime import datetime
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 
-BOT_TOKEN = "8303942608:AAGhwyfjxYxHAjTzX32peN4M66YqsJjtV4U"   # from @BotFather
-CHAT_ID   = "@AceKong"    # your Telegram user/chat ID
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+CHAT_ID   = os.environ.get("CHAT_ID", "")
 
 # File to store seen listing IDs between runs
 STATE_FILE = os.path.join(os.path.dirname(__file__), "garage_seen.json")
@@ -34,7 +34,6 @@ SOURCES = [
     {
         "name": "ss.lv",
         "url": "https://www.ss.lv/lv/real-estate/premises/garages/riga/",
-
         "parser": "parse_ss",
     },
     {
@@ -156,6 +155,10 @@ def fetch(url: str) -> str | None:
 
 
 def main():
+    if not BOT_TOKEN or not CHAT_ID:
+        print("ERROR: BOT_TOKEN and CHAT_ID must be set as environment variables.")
+        exit(1)
+
     seen = load_seen()
     new_listings = []
 

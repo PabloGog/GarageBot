@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Garage listing monitor — ss.lv only
+Garage listing monitor — ss.lv
 Sends Telegram notification when new listings appear.
 
 Setup:
@@ -9,6 +9,8 @@ Setup:
 Env vars required:
   BOT_TOKEN — from @BotFather
   CHAT_ID   — your Telegram user ID (from @userinfobot)
+
+To add more areas — just add a URL to SOURCE_URLS list.
 """
 
 import os
@@ -24,7 +26,11 @@ BOT_TOKEN  = os.environ.get("BOT_TOKEN", "")
 CHAT_ID    = os.environ.get("CHAT_ID", "")
 STATE_FILE = os.path.join(os.path.dirname(__file__), "garage_seen.json")
 
-SOURCE_URL = "https://www.ss.lv/lv/real-estate/premises/garages/riga/ilguciems/"
+# Add/remove URLs here to control which areas are monitored
+SOURCE_URLS = [
+    "https://www.ss.lv/lv/real-estate/premises/garages/riga/ilguciems/sell/",
+    "https://www.ss.lv/lv/real-estate/premises/garages/riga/dzeguzhkalns/sell/",
+]
 
 HEADERS = {
     "User-Agent": (
@@ -36,7 +42,7 @@ HEADERS = {
 
 # ── PARSER ────────────────────────────────────────────────────────────────────
 
-def parse_ss(html: str) -> list[dict]:
+def parse_ss(html: str, base_url: str) -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
     listings = []
 
@@ -92,44 +98,47 @@ def main():
         print("ERROR: BOT_TOKEN and CHAT_ID must be set as environment variables.")
         exit(1)
 
-    print(f"[{datetime.now():%H:%M:%S}] Checking ss.lv...")
-
-    try:
-        r = requests.get(SOURCE_URL, headers=HEADERS, timeout=15)
-        r.raise_for_status()
-        html = r.text
-    except Exception as e:
-        print(f"Fetch error: {e}")
-        exit(0)
-
-    listings = parse_ss(html)
-    print(f"  Found {len(listings)} listings total")
-
     seen     = load_seen()
     is_first = len(seen) == 0
-    new_ones = [l for l in listings if l["id"] not in seen]
+    new_ones = []
 
-    for l in listings:
-        seen.add(l["id"])
+    for url in SOURCE_URLS:
+        area = url.rstrip("/").split("/")[-2]  # extract area name from URL
+        print(f"[{datetime.now():%H:%M:%S}] Checking {area}...")
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=15)
+            r.raise_for_status()
+        except Exception as e:
+            print(f"  Fetch error: {e}")
+            continue
+
+        listings = parse_ss(r.text, url)
+        print(f"  Found {len(listings)} listings")
+
+        for l in listings:
+            if l["id"] not in seen:
+                new_ones.append(l)
+            seen.add(l["id"])
+
     save_seen(seen)
 
     if is_first:
-        print(f"  First run — saved {len(listings)} listings, no notifications sent.")
+        print(f"First run — saved {len(seen)} listings across {len(SOURCE_URLS)} areas, no notifications sent.")
         return
 
     if new_ones:
-        print(f"  {len(new_ones)} NEW listing(s)!")
+        print(f"{len(new_ones)} NEW listing(s)!")
         for l in new_ones:
+            area = l["url"].split("/")[-3]  # e.g. "kurzeme", "ilguciems"
             msg = (
-                f"🏠 <b>Новый гараж на ss.lv</b>\n"
+                f"🏠 <b>Новый гараж — {area}</b>\n"
                 f"{l['title']}\n"
                 f"💰 {l['price']}\n"
-                f"📍 Рига, Курземе\n"
                 f"🔗 <a href='{l['url']}'>{l['url']}</a>"
             )
             send_telegram(msg)
     else:
-        print("  No new listings.")
+        print("No new listings.")
 
 if __name__ == "__main__":
     main()

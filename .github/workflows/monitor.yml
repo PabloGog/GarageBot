@@ -22,6 +22,16 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4
 
+        - name: Test notification
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d chat_id="${CHAT_ID}" \
+            -d text="✅ Garage monitor test OK" \
+            -d parse_mode="HTML"
+
       - name: Run monitor
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}

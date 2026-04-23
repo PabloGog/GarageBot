@@ -2,14 +2,20 @@ name: Garage Monitor
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # каждые 30 минут
-  workflow_dispatch:          # ручной запуск для теста
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Restore state
+        uses: actions/download-artifact@v4
+        with:
+          name: garage-state
+        continue-on-error: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,9 +37,3 @@ jobs:
           name: garage-state
           path: garage_seen.json
           overwrite: true
-
-      - name: Restore state
-        uses: actions/download-artifact@v4
-        with:
-          name: garage-state
-        continue-on-error: true  # первый запуск — файла ещё нет
